@@ -19,6 +19,8 @@ int main(int argc, char *argv[])
 int status;
 struct addrinfo hints;
 struct addrinfo *servinfo; // will point to the results
+struct sockaddr *clinfo;
+
 
 memset(&hints, 0, sizeof hints); // make sure the struct is empty
 hints.ai_family = AF_UNSPEC; // don't care IPv4 or IPv6
@@ -27,7 +29,7 @@ hints.ai_socktype = SOCK_STREAM; // TCP stream sockets
 hints.ai_flags = AI_PASSIVE; // fill in my IP for me
 
 
-if(getaddrinfo("www.google.com", "http", &hints, &servinfo))
+if(getaddrinfo(NULL, "8080", &hints, &servinfo))
   {
     fprintf(stderr, "Didn't work!!!!!!!\n");
     return -1;
@@ -40,6 +42,55 @@ if(status == -1)
     exit(1);
   }
 
+
+//Make a server and listen at a port for incoming requests.
+
+size_t server_port;
+if((server_port = bind(status, servinfo->ai_addr, servinfo->ai_addrlen)) == -1)
+{
+ fprintf(stderr, "port binding didn't work!\n");
+ exit(1);
+}
+
+printf("Port binding success. Listening at port 8080.....\n");
+// listen at port for incoming requests:
+size_t accepted;
+char* buff = (char*)malloc(4096);  
+size_t sock_len = 55;
+char* local_addr = "localhost";
+FILE *fptr;
+char notes[500];
+ssize_t bytes_received, sent_bytes;
+listen(status, 255);
+while(1)
+{
+    accepted = accept(status, (struct sockaddr* )&local_addr, (socklen_t *)&sock_len );
+    if(accepted != -1)
+    {
+        printf("Accpet status: %d\n", accepted);
+        printf("Connected to Server successfully.\n");
+        bytes_received = recv(accepted, buff, 4096, 0);
+
+        if(bytes_received != 0)
+        {
+          printf("here!\n");
+          fptr = fopen("./notes.txt", "r");
+          fgets(notes, 500, fptr);
+          sent_bytes = send(accepted, notes , 500, 0);
+          printf("sent: %d\n", sent_bytes);
+//          if()
+        }
+    }
+}
+
+printf("Server Stopped!\n");
+close(accepted);
+close(status);
+
+
+
+
+/* Act as client. Send request and receive reponse from server.
 int connection_result;
 if((connection_result = connect(status, servinfo->ai_addr, servinfo->ai_addrlen)) == -1)
   {
@@ -48,27 +99,33 @@ if((connection_result = connect(status, servinfo->ai_addr, servinfo->ai_addrlen)
   }
 printf("Connection succeeded with result: %d\n", connection_result);
 
-char *msg = "GET / HTTP/1.1\r\nHost: www.google.com\r\nConnection: close\r\n\r\n\r\n";
-char* buff = (char*)malloc(4096);  
+char *msg = "GET /posts/1 HTTP/1.1\r\nHost: jsonplaceholder.typicode.com\r\nContent-Type: application/json\r\nConnection: close\r\n\r\n\r\n";
+char* buff = (char*)malloc(155);  
 int len, bytes_sent, bytes_received;
 
 
 len = strlen(msg);
 bytes_sent = send(status, msg, len, 0);
+FILE *fptr;
+
+// Open a file in writing mode
+fptr = fopen("./result.json", "a");
+
 while(1)
 {
- bytes_received = recv(status, buff, 250, 0);
- printf("The data: %s\n", buff);
+ bytes_received = recv(status, buff, 155, 0);
+ fprintf(fptr, buff);
+// printf("%s\n", buff);
  if(bytes_received == 0)
    break;
 }
 
 
-// servinfo now points to a linked list of 1 or more struct addrinfos
-// ... do everything until you don't need servinfo anymore ....
-  //
 
-
+// free all allocated memory.
+*/
+fclose(fptr);
+free(local_addr);
 free(buff);
 
 freeaddrinfo(servinfo); // free the linked-list
