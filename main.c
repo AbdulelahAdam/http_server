@@ -71,8 +71,7 @@ while(1)
         bytes_received = recv(accepted, buff, 4096, 0);
 
         if(bytes_received != 0)
-        {
-          printf("%c\n", (char)(buff[4]));
+        { 
           fptr = fopen("./notes.txt", "r");
           fgets(notes, 4096, fptr);
           sent_bytes = send(accepted, notes , sizeof(notes), 0);
@@ -84,7 +83,7 @@ while(1)
 
 printf("Server Stopped!\n");
 close(accepted);
-close(status);
+//close(status);
 
 
 
