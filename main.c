@@ -19,7 +19,6 @@ int main(int argc, char *argv[])
 int status;
 struct addrinfo hints;
 struct addrinfo *servinfo; // will point to the results
-struct sockaddr *clinfo;
 
 
 memset(&hints, 0, sizeof hints); // make sure the struct is empty
@@ -59,7 +58,7 @@ char* buff = (char*)malloc(4096);
 size_t sock_len = 55;
 char* local_addr = "localhost";
 FILE *fptr;
-char notes[500];
+char notes[4096];
 ssize_t bytes_received, sent_bytes;
 listen(status, 255);
 while(1)
@@ -67,17 +66,17 @@ while(1)
     accepted = accept(status, (struct sockaddr* )&local_addr, (socklen_t *)&sock_len );
     if(accepted != -1)
     {
-        printf("Accpet status: %d\n", accepted);
+        printf("Accpet status: %ld\n", accepted);
         printf("Connected to Server successfully.\n");
         bytes_received = recv(accepted, buff, 4096, 0);
 
         if(bytes_received != 0)
         {
-          printf("here!\n");
+          printf("%c\n", (char)(buff[4]));
           fptr = fopen("./notes.txt", "r");
-          fgets(notes, 500, fptr);
-          sent_bytes = send(accepted, notes , 500, 0);
-          printf("sent: %d\n", sent_bytes);
+          fgets(notes, 4096, fptr);
+          sent_bytes = send(accepted, notes , sizeof(notes), 0);
+          printf("sent: %ld\n", sent_bytes);
 //          if()
         }
     }
