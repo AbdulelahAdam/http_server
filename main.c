@@ -61,8 +61,7 @@ char* response_header;
 FILE *fptr;
 char notes[4096];
 ssize_t bytes_received, sent_bytes;
-listen(status, 255);
-fptr = fopen("./notes.txt", "r");
+listen(status, 2);
 while(1)
 {
     accepted = accept(status, (struct sockaddr* )&local_addr, (socklen_t *)&sock_len );
@@ -73,7 +72,7 @@ while(1)
       while(1)
       {
         bytes_received = recv(accepted, buff, 256, 0);
-
+        fptr = fopen("./notes.txt", "r");
         if(bytes_received != 0)
         { 
           response_header = "HTTP/1.1 200 OK\r\nContent-Type: text/html; charset=utf-8\r\nContent-Length: 4096\r\n\r\n";
@@ -83,14 +82,16 @@ while(1)
                   perror("Error in sending file.");
                   exit(1);
             }
-
+            
+            bzero(notes, sizeof(notes));
             //printf("%s", notes);  // Print each line read
           }
          // bzero(buff, sizof());
-          bzero(notes, sizeof(notes));
           //printf("sent: %ld\n", sent_bytes);
           //bytes_received = 0;
 //          if()
+          fclose(fptr);
+//          break;
         }
 
       }
