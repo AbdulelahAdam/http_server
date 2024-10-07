@@ -57,34 +57,51 @@ size_t accepted;
 char* buff = (char*)malloc(4096);  
 size_t sock_len = 55;
 char* local_addr = "localhost";
+char* response_header;
 FILE *fptr;
 char notes[4096];
 ssize_t bytes_received, sent_bytes;
 listen(status, 255);
+fptr = fopen("./notes.txt", "r");
 while(1)
 {
     accepted = accept(status, (struct sockaddr* )&local_addr, (socklen_t *)&sock_len );
     if(accepted != -1)
     {
-        printf("Accpet status: %ld\n", accepted);
+        printf("Accept status: %ld\n", accepted);
         printf("Connected to Server successfully.\n");
-        bytes_received = recv(accepted, buff, 4096, 0);
+      while(1)
+      {
+        bytes_received = recv(accepted, buff, 256, 0);
 
         if(bytes_received != 0)
         { 
-          fptr = fopen("./notes.txt", "r");
-          fgets(notes, 4096, fptr);
-          sent_bytes = send(accepted, notes , sizeof(notes), 0);
-          printf("sent: %ld\n", sent_bytes);
+          response_header = "HTTP/1.1 200 OK\r\nContent-Type: text/html; charset=utf-8\r\nContent-Length: 4096\r\n\r\n";
+          send(accepted, response_header, strlen(response_header), 0);
+          while (fgets(notes, sizeof(notes), fptr) != NULL) {
+            if (send(accepted, notes, strlen(notes), 0) == -1) {
+                  perror("Error in sending file.");
+                  exit(1);
+            }
+
+            //printf("%s", notes);  // Print each line read
+          }
+         // bzero(buff, sizof());
+          bzero(notes, sizeof(notes));
+          //printf("sent: %ld\n", sent_bytes);
+          //bytes_received = 0;
 //          if()
         }
+
+      }
+
     }
 }
 
 printf("Server Stopped!\n");
 close(accepted);
+server_port = NULL;
 //close(status);
-
 
 
 
@@ -125,6 +142,7 @@ while(1)
 fclose(fptr);
 free(local_addr);
 free(buff);
+free(response_header);
 
 freeaddrinfo(servinfo); // free the linked-list
 
