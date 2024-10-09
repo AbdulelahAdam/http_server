@@ -69,12 +69,15 @@ while(1)
     {
         printf("Accept status: %ld\n", accepted);
         printf("Connected to Server successfully.\n");
-      while(1)
+
+      // receive client request here
+        //...... 
+      //Send response here
+      while(1) // response
       {
         fptr = fopen("./static/index.html", "r");
         bytes_received = getdelim(&buff, &file_size, '\0', fptr);
-        fclose(fptr);
-        sprintf(response_header, "%s %ld %s","HTTP/1.1 200 OK\r\nContent-Type: text/html; charset=utf-8\r\nContent-Length: ", bytes_received, "\r\n\r\n");
+        sprintf(response_header, "%s %ld %s","HTTP/1.0 200 OK\r\nContent-Type: text/html; charset=utf-8\r\nContent-Length: ", bytes_received, "\r\n\r\n");
         send(accepted, response_header, strlen(response_header), 0);
 
           
@@ -82,8 +85,8 @@ while(1)
                perror("Error in sending file.");
                exit(1);
         }
-           
-        bzero(buff,bytes_received);
+
+        fclose(fptr);
        //printf("%s", notes);  // Print each line read
 
          // bzero(buff, sizof());
@@ -96,7 +99,7 @@ while(1)
       }
 
       close(accepted);
-
+      
     }
 }
 
