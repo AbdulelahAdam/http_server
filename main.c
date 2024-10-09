@@ -55,11 +55,11 @@ printf("Port binding success. Listening at port 8080.....\n");
 // listen at port for incoming requests:
 size_t accepted;
 char* buff = (char*)malloc(4096);  
-size_t sock_len = 55;
+size_t sock_len = 25;
 char* local_addr = "localhost";
-char* response_header;
+char* response_header = (char*) malloc(4096);
 FILE *fptr;
-char notes[4096];
+size_t file_size;
 ssize_t bytes_received, sent_bytes;
 listen(status, 2);
 while(1)
@@ -71,37 +71,36 @@ while(1)
         printf("Connected to Server successfully.\n");
       while(1)
       {
-        bytes_received = recv(accepted, buff, 256, 0);
-        fptr = fopen("./notes.txt", "r");
-        if(bytes_received != 0)
-        { 
-          response_header = "HTTP/1.1 200 OK\r\nContent-Type: text/html; charset=utf-8\r\nContent-Length: 4096\r\n\r\n";
-          send(accepted, response_header, strlen(response_header), 0);
-          while (fgets(notes, sizeof(notes), fptr) != NULL) {
-            if (send(accepted, notes, strlen(notes), 0) == -1) {
-                  perror("Error in sending file.");
-                  exit(1);
-            }
-            
-            bzero(notes, sizeof(notes));
-            //printf("%s", notes);  // Print each line read
-          }
+        fptr = fopen("./index.html", "r");
+        bytes_received = getdelim(&buff, &file_size, '\0', fptr);
+        fclose(fptr);
+        sprintf(response_header, "%s %ld %s","HTTP/1.1 200 OK\r\nContent-Type: text/html; charset=utf-8\r\nContent-Length: ", bytes_received, "\r\n\r\n");
+        send(accepted, response_header, strlen(response_header), 0);
+
+          
+        if (send(accepted, buff, bytes_received, 0) == -1) {
+               perror("Error in sending file.");
+               exit(1);
+        }
+           
+        bzero(buff,bytes_received);
+       //printf("%s", notes);  // Print each line read
+
          // bzero(buff, sizof());
           //printf("sent: %ld\n", sent_bytes);
           //bytes_received = 0;
 //          if()
-          fclose(fptr);
-//          break;
-        }
+          break;
+        
 
       }
+
+      close(accepted);
 
     }
 }
 
 printf("Server Stopped!\n");
-close(accepted);
-server_port = NULL;
 //close(status);
 
 
