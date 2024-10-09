@@ -71,7 +71,7 @@ while(1)
         printf("Connected to Server successfully.\n");
       while(1)
       {
-        fptr = fopen("./index.html", "r");
+        fptr = fopen("./static/index.html", "r");
         bytes_received = getdelim(&buff, &file_size, '\0', fptr);
         fclose(fptr);
         sprintf(response_header, "%s %ld %s","HTTP/1.1 200 OK\r\nContent-Type: text/html; charset=utf-8\r\nContent-Length: ", bytes_received, "\r\n\r\n");
