@@ -25,8 +25,15 @@ void handle_sigint(int sig) {
 int main(int argc, char *argv[])
 {
 
+signal(SIGINT, handle_sigint);
+
+int opt = 1;
+
+
 struct addrinfo hints;
 struct addrinfo *servinfo; // will point to the results
+
+
 
 
 memset(&hints, 0, sizeof hints); // make sure the struct is empty
@@ -49,7 +56,10 @@ if(status == -1)
     exit(1);
   }
 
-
+if (setsockopt(status, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt)) < 0) {
+    perror("setsockopt");
+    exit(EXIT_FAILURE);
+}
 //Make a server and listen at a port for incoming requests.
 
 size_t server_port;
@@ -63,17 +73,21 @@ printf("Port binding success. Listening at port 8080.....\n");
 // listen at port for incoming requests:
 size_t accepted;
 size_t sock_len = 25;
-char* buff_received = (char*)malloc(4096);
-char* buff_sent = (char*)malloc(4096);
+char* buff_received = (char*)malloc(256 * sizeof(char));
+char* buff_sent = (char*)malloc(4096 * sizeof(char));
 char* local_addr = "localhost";
-char* response_header = (char*) malloc(256);
-FILE *fptr;
+char* response_header = (char*) malloc(256 * sizeof(char));
+FILE* fptr;
 size_t file_size;
 size_t bytes_received;
-char method[7];
 listen(status, 2);
 while(1)
 {
+    char* method = (char*)malloc(7 * sizeof(char));
+    if (method == NULL) {
+        perror("Malloc failed");
+        exit(1);
+    }
     accepted = accept(status, (struct sockaddr* )&local_addr, (socklen_t *)&sock_len );
     if(accepted != -1)
     {
@@ -87,22 +101,22 @@ while(1)
         bytes_received = recv(accepted, buff_received, 4096, 0);
         if(bytes_received > 0)
         {
-          for(int i = 0; i < 7; i++)
+          for(int i = 0; i < 6; i++)
           {
             if(buff_received[i] == ' ')
             {
               method[i] = '\0';
               break;
             }
-
-            method[i] = (char)buff_received[i];
+            method[i] = buff_received[i];
 
           }
           //method[7] = '\0';
           buff_sent = "<h1 style='text-align: center; color: red;'>This page is under construction</h1>\n";
           file_size = strlen(buff_sent);
-          sprintf(response_header, "%s %ld %s","HTTP/1.0 200 OK\r\nContent-Type: text/html; charset=utf-8\r\nContent-Length: ", bytes_received, "\r\n\r\n");
-        printf("methodsldkfnlkasdfl: %s\n", method) ;
+          sprintf(response_header, "%s %ld %s","HTTP/1.1 200 OK\r\nContent-Type: text/html; charset=utf-8\r\nContent-Length: ", file_size, "\r\n\r\n");
+        printf("method: %s\n", method);
+        
         send(accepted, response_header, strlen(response_header), 0);
           
         if (send(accepted, buff_sent, file_size, 0) == -1) 
@@ -110,13 +124,15 @@ while(1)
                perror("Error in sending file.");
                exit(1);
           }
+          memset(buff_received, 0, sizeof buff_received);
+          memset(method, 0, sizeof method);
         }
         else{
           perror("Error receiving data. Client didn't send anything :( \n");
         }
        //printf("%s", notes);  // Print each line read
 
-         // bzero(buff, sizof());
+        // bzero(buff, sizof());
           //printf("sent: %ld\n", sent_bytes);
           //bytes_received = 0;
 //          if()
