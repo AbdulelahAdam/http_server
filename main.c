@@ -2,21 +2,29 @@
 #include <stdlib.h>
 #include <sys/types.h>
 #include <sys/socket.h>
+#include <signal.h>
 #include <netdb.h>
 #include <string.h>
+
+int status;
+
+
 
 int getaddrinfo(const char *node, // e.g. "www.example.com" or IP
  const char *service, // e.g. "http" or port number
  const struct addrinfo *hints,
  struct addrinfo **res);
 
-
+void handle_sigint(int sig) {
+    printf("\nShutting down server...\n");
+    close(status);  // Close the server socket
+    exit(0);  // Exit the program
+}
 
 
 int main(int argc, char *argv[])
 {
 
-int status;
 struct addrinfo hints;
 struct addrinfo *servinfo; // will point to the results
 
@@ -94,7 +102,7 @@ while(1)
           buff_sent = "<h1 style='text-align: center; color: red;'>This page is under construction</h1>\n";
           file_size = strlen(buff_sent);
           sprintf(response_header, "%s %ld %s","HTTP/1.0 200 OK\r\nContent-Type: text/html; charset=utf-8\r\nContent-Length: ", bytes_received, "\r\n\r\n");
-        printf("method: %s\n", method) ;
+        printf("methodsldkfnlkasdfl: %s\n", method) ;
         send(accepted, response_header, strlen(response_header), 0);
           
         if (send(accepted, buff_sent, file_size, 0) == -1) 
@@ -103,14 +111,15 @@ while(1)
                exit(1);
           }
         }
-        
+        else{
+          perror("Error receiving data. Client didn't send anything :( \n");
+        }
        //printf("%s", notes);  // Print each line read
 
          // bzero(buff, sizof());
           //printf("sent: %ld\n", sent_bytes);
           //bytes_received = 0;
 //          if()
-        bzero(method, 7);
          break;
         
 
