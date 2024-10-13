@@ -7,7 +7,9 @@
 #include <string.h>
 
 int status;
-
+char* key;
+char* val;
+char* delimiter;
 
 
 int getaddrinfo(const char *node, // e.g. "www.example.com" or IP
@@ -20,6 +22,33 @@ void handle_sigint(int sig) {
     close(status);  // Close the server socket
     exit(0);  // Exit the program
 }
+
+
+void mappifyString(char* string)
+{
+  
+  delimiter = strchr(string, ':');
+  if (delimiter != NULL) {
+        // Replace '=' with a null terminator to split the string
+        *delimiter = '\0';
+
+        // key is the part before '='
+        key = string;
+
+        // value is the part after '='
+        val = delimiter + 1;
+
+        // Print the key and value
+        printf("%s: %s\n", key, val);
+    } else {
+        printf("The string does not contain a key-value pair.\n");
+    }
+
+memset(&key, 0, sizeof key);
+memset(&val, 0, sizeof val);
+
+}
+
 
 
 int main(int argc, char *argv[])
@@ -80,14 +109,10 @@ char* response_header = (char*) malloc(256 * sizeof(char));
 FILE* fptr;
 size_t file_size;
 size_t bytes_received;
+
 listen(status, 2);
 while(1)
 {
-    char* method = (char*)malloc(7 * sizeof(char));
-    if (method == NULL) {
-        perror("Malloc failed");
-        exit(1);
-    }
     accepted = accept(status, (struct sockaddr* )&local_addr, (socklen_t *)&sock_len );
     if(accepted != -1)
     {
@@ -101,23 +126,16 @@ while(1)
         bytes_received = recv(accepted, buff_received, 4096, 0);
         if(bytes_received > 0)
         {
-          for(int i = 0; i < 6; i++)
-          {
-            if(buff_received[i] == ' ')
-            {
-              method[i] = '\0';
-              break;
-            }
-            method[i] = buff_received[i];
-
-          }
           //method[7] = '\0';
+   
+          mappifyString(buff_received);
+
           buff_sent = "<h1 style='text-align: center; color: red;'>This page is under construction</h1>\n";
           file_size = strlen(buff_sent);
           sprintf(response_header, "%s %ld %s","HTTP/1.1 200 OK\r\nContent-Type: text/html; charset=utf-8\r\nContent-Length: ", file_size, "\r\n\r\n");
-        printf("method: %s\n", method);
+        //printf("%s\n", method);
         
-        send(accepted, response_header, strlen(response_header), 0);
+        send(accepted,response_header, strlen(response_header), 0);
           
         if (send(accepted, buff_sent, file_size, 0) == -1) 
           {
@@ -125,17 +143,12 @@ while(1)
                exit(1);
           }
           memset(buff_received, 0, sizeof buff_received);
-          memset(method, 0, sizeof method);
+
         }
         else{
           perror("Error receiving data. Client didn't send anything :( \n");
         }
-       //printf("%s", notes);  // Print each line read
 
-        // bzero(buff, sizof());
-          //printf("sent: %ld\n", sent_bytes);
-          //bytes_received = 0;
-//          if()
          break;
         
 
@@ -190,7 +203,9 @@ free(local_addr);
 free(buff_sent);
 free(buff_received);
 free(response_header);
-
+free(key);
+free(val);
+free(delimiter);
 freeaddrinfo(servinfo); // free the linked-list
 
 }
