@@ -7,9 +7,13 @@
 #include <string.h>
 
 int status;
-char* key;
-char* val;
-char* delimiter;
+//char* key;
+//char* val;
+//char* delimiter;
+
+char* method;
+char* path;
+char* http_version;
 
 
 int getaddrinfo(const char *node, // e.g. "www.example.com" or IP
@@ -24,31 +28,63 @@ void handle_sigint(int sig) {
 }
 
 
-void mappifyString(char* string)
-{
-  
-  delimiter = strchr(string, ':');
-  if (delimiter != NULL) {
+//void mappifyString(char* string)
+//{
+  //printf("new string: %s\n", string) ;
+//  delimiter = strchr(string, ':');
+  //if (delimiter != NULL) {
         // Replace '=' with a null terminator to split the string
-        *delimiter = '\0';
+    //    *delimiter = '\0';
 
         // key is the part before '='
-        key = string;
+      //  key = string;
 
         // value is the part after '='
-        val = delimiter + 1;
-
+        //val = delimiter + 1;
+        
         // Print the key and value
-        printf("%s: %s\n", key, val);
-    } else {
-        printf("The string does not contain a key-value pair.\n");
+        //printf("%s: %s\n", key, val);
+//    } else {
+        //printf("The string does not contain a key-value pair.\n");
+  //  }
+
+//memset(&key, 0, sizeof key);
+//memset(&val, 0, sizeof val);
+
+//}
+
+void splitHeaders(char* header)
+{   
+    // Split the string by space using strtok
+    char *token = strtok(header, " ");
+    int i = -1;
+    while (token != NULL) {
+        // Store the token
+        i++;
+
+        if(i == 0)
+          method = token;
+
+  
+
+        else if(i == 1) 
+          path = token;
+         
+        else
+        {
+          http_version = token;
+          http_version[strlen(http_version) - 1] = '\0';
+        }
+        
+        // Get the next token
+        token = strtok(NULL, " ");
     }
-
-memset(&key, 0, sizeof key);
-memset(&val, 0, sizeof val);
-
+    
+    // Output the result
+    
+    // Free the allocated memory
+    free(token);
 }
-
 
 
 int main(int argc, char *argv[])
@@ -102,18 +138,21 @@ printf("Port binding success. Listening at port 8080.....\n");
 // listen at port for incoming requests:
 size_t accepted;
 size_t sock_len = 25;
-char* buff_received = (char*)malloc(256 * sizeof(char));
-char* buff_sent = (char*)malloc(4096 * sizeof(char));
+char* buff_received = (char*)malloc(256);
+char* buff_sent = (char*)malloc(256);
 char* local_addr = "localhost";
-char* response_header = (char*) malloc(256 * sizeof(char));
+char* response_header = (char*) malloc(256);
 FILE* fptr;
+char file_contents[4096];
+char* status_code = (char* )malloc(16); 
 size_t file_size;
 size_t bytes_received;
-
+char* first_header = (char*)malloc(64);
 listen(status, 2);
 while(1)
 {
     accepted = accept(status, (struct sockaddr* )&local_addr, (socklen_t *)&sock_len );
+    status_code = "200 OK\r\n";
     if(accepted != -1)
     {
         printf("Accept status: %ld\n", accepted);
@@ -126,36 +165,76 @@ while(1)
         bytes_received = recv(accepted, buff_received, 4096, 0);
         if(bytes_received > 0)
         {
-          //method[7] = '\0';
-   
-          mappifyString(buff_received);
-
-          buff_sent = "<h1 style='text-align: center; color: red;'>This page is under construction</h1>\n";
-          file_size = strlen(buff_sent);
-          sprintf(response_header, "%s %ld %s","HTTP/1.1 200 OK\r\nContent-Type: text/html; charset=utf-8\r\nContent-Length: ", file_size, "\r\n\r\n");
-        //printf("%s\n", method);
-        
-        send(accepted,response_header, strlen(response_header), 0);
-          
-        if (send(accepted, buff_sent, file_size, 0) == -1) 
+          for(int i = 0; i <128; i++) 
           {
-               perror("Error in sending file.");
-               exit(1);
+            if(buff_received[i] == '\n')
+              break;
+                          
+            first_header[i] = buff_received[i];
           }
+          
+          
+          splitHeaders(first_header);
+          buff_sent = "";
+          char* file_path = (char* )malloc(32);
+          sprintf(file_path, "%s%s", "./", path);
+          fptr = fopen(file_path, "r"); 
+
+          if(fptr != NULL)
+          {
+            //buff_sent = fptr;
+            fseek(fptr, 0, SEEK_END);
+            file_size = ftell(fptr);
+            rewind(fptr);
+        //    file_size = 0;
+             sprintf(response_header, "%s %s%s %ld %s", http_version, status_code, "Content-Type: text/html; charset=utf-8\r\nContent-Length: ", file_size, "\r\n\r\n");
+//        printf("%s\n", first_header);
+            send(accepted, response_header, strlen(response_header), 0);
+           while(fgets(file_contents, sizeof(file_contents), fptr) != NULL)
+            { 
+          
+              if (send(accepted, file_contents, strlen(file_contents), 0) == -1) 
+              {
+                 perror("Error in sending file.");
+                 exit(1);
+              }
+              bzero(file_contents, sizeof(file_contents));
+            }
+
+          }
+          else 
+          { 
+            printf("HERE!!!!!\n");
+            //buff_sent = "";
+            status_code = " 404 File Not Found\r\n";
+            file_size = 0; 
+            sprintf(response_header, "%s %s%s %ld %s", http_version, status_code, "Content-Type: text/html; charset=utf-8\r\nContent-Length: ", file_size, "\r\n\r\n");
+//        printf("%s\n", first_header);
+            send(accepted, response_header, strlen(response_header), 0);            
+            break; 
+          }
+          
           memset(buff_received, 0, sizeof buff_received);
-
         }
-        else{
-          perror("Error receiving data. Client didn't send anything :( \n");
-        }
+          else
+          {
+            // SERVER ERRORS SHOULD BE HERE SINCE CLIENT COULDN'T CONNECT. 4Xx
+            perror("Error receiving data. Client didn't send anything :( \n");
+          }
 
-         break;
-        
+        memset(response_header, 0, sizeof response_header);
+        memset(http_version, 0, sizeof http_version);
+        memset(path, 0, sizeof path);
+        memset(method, 0, sizeof method);
+
+       fclose(fptr);
+       break;
+             
 
       }
 
       close(accepted);
-      
+
     }
 }
 
@@ -198,14 +277,16 @@ while(1)
 
 // free all allocated memory.
 */
-fclose(fptr);
 free(local_addr);
 free(buff_sent);
 free(buff_received);
 free(response_header);
-free(key);
-free(val);
-free(delimiter);
+free(method);
+free(path);
+free(http_version);
+//free(key);
+//free(val);
+//free(delimiter);
 freeaddrinfo(servinfo); // free the linked-list
 
 }
