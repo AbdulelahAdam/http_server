@@ -177,9 +177,15 @@ while(1)
           splitHeaders(first_header);
           buff_sent = "";
           char* file_path = (char* )malloc(32);
-          sprintf(file_path, "%s%s", "./", path);
+          sprintf(file_path, "%s%s", ".", path);
+          if(strlen(path) == 1)
+          {
+            file_path = "./static/index.html";
+            // Add Host
+          }
+ 
           fptr = fopen(file_path, "r"); 
-
+          printf("fptr, null or what: %s\n", (fptr == NULL) ? "Yes" : "No" );
           if(fptr != NULL)
           {
             //buff_sent = fptr;
@@ -203,18 +209,17 @@ while(1)
 
           }
           else 
-          { 
-            printf("HERE!!!!!\n");
-            //buff_sent = "";
-            status_code = " 404 File Not Found\r\n";
-            file_size = 0; 
-            sprintf(response_header, "%s %s%s %ld %s", http_version, status_code, "Content-Type: text/html; charset=utf-8\r\nContent-Length: ", file_size, "\r\n\r\n");
-//        printf("%s\n", first_header);
+          {       
+            //printf("status code: %s\nhttp_version: %s\nfile size: %d\n", status_code, http_version, 0);
+            sprintf(response_header, "%s %s%d%s", http_version, "404 File Not Found\r\nContent-Type: text/html; charset=utf-8\r\nContent-Length: ", 0, "\r\n\r\n");
             send(accepted, response_header, strlen(response_header), 0);            
-            break; 
+            memset(http_version, 0, sizeof http_version);
+
+            continue;
           }
           
-          memset(buff_received, 0, sizeof buff_received);
+          //memset(buff_received, 0, sizeof buff_received);
+          //memset(file_path, 0, sizeof file_path);
         }
           else
           {
@@ -222,10 +227,10 @@ while(1)
             perror("Error receiving data. Client didn't send anything :( \n");
           }
 
-        memset(response_header, 0, sizeof response_header);
+        //memset(response_header, 0, sizeof response_header);
         memset(http_version, 0, sizeof http_version);
-        memset(path, 0, sizeof path);
-        memset(method, 0, sizeof method);
+        //memset(path, 0, sizeof path);
+        //memset(method, 0, sizeof method);
 
        fclose(fptr);
        break;
