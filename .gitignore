@@ -1,6 +1,8 @@
+.gitignore
 main.exe
 notes.txt
 quick_server_build.sh
 telnet_build.sh
 ./quick_server_build.sh
 ./telnet_build.sh
+.clang-format
