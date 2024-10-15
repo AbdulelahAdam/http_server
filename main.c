@@ -14,8 +14,9 @@ int status;
 // char* delimiter;
 
 char* method;
-char* path;
-char* http_version;
+char path[256];
+char http_version[16];
+
 
 int getaddrinfo(const char* node,     // e.g. "www.example.com" or IP
                 const char* service,  // e.g. "http" or port number
@@ -55,6 +56,14 @@ void handle_sigint(int sig) {
 void splitHeaders(char* header) {
     // Split the string by space using strtok
     char* token = strtok(header, " ");
+    method = (char*)malloc(16);
+    printf("Before: %s\n", path);
+    if(strlen(path) > 0)
+    {
+        memset(path, '\0', sizeof(path));
+    }
+    printf("Possible Edit: %s\n", path);
+  
     int i = -1;
     while (token != NULL) {
         // Store the token
@@ -64,11 +73,13 @@ void splitHeaders(char* header) {
             method = token;
 
         else if (i == 1)
-            path = token;
+        {
+            strncpy(path, token, strlen(token));
+            printf("After: %s\n", path);
+        }
 
         else {
-            http_version = token;
-            http_version[strlen(http_version) - 1] = '\0';
+            strncpy(http_version, token, sizeof(token));
         }
 
         // Get the next token
@@ -134,7 +145,6 @@ int main(int argc, char* argv[]) {
     size_t file_size;
     size_t bytes_received;
     char* first_header = (char*)malloc(64);
-    
     listen(status, 2);
     while (1) {
         accepted = accept(status, (struct sockaddr*)&local_addr,
@@ -143,14 +153,15 @@ int main(int argc, char* argv[]) {
         if (accepted != -1) {
             printf("Accept status: %ld\n", accepted);
             printf("Connected to Server successfully.\n");
-
+            char* file_path = (char*)malloc(512 * sizeof(char)); 
             // receive client request here
             // Send response here
             while (1)  // response
             {
                 bytes_received = recv(accepted, buff_received, 4096, 0);
                 if (bytes_received > 0)
-                {
+                {  
+                     
                     for (int i = 0; i < 128; i++) {
                         if (buff_received[i] == '\n')
                             break;
@@ -163,13 +174,12 @@ int main(int argc, char* argv[]) {
                     if(strcmp(method,"GET") == 0)
                     {
                     buff_sent = "";
-                    char* file_path = (char*)malloc(32);
                     sprintf(file_path, "%s%s", ".", path);
                     if (strlen(path) == 1) {
                         file_path = "./static/index.html";
                         // Add Host
                     }
-
+                    printf("THE PATH: %s\n", file_path);
                     fptr = fopen(file_path, "r"); 
 
 
@@ -196,22 +206,30 @@ int main(int argc, char* argv[]) {
                             }
                             bzero(file_contents, sizeof(file_contents));
                         }
-                        //memset(http_version, 0, sizeof http_version);
+                        
+                        printf("file path: %s\nhttp version: %s\n", file_path, http_version);
+
+
 
                     } else {
                         // printf("status code: %s\nhttp_version: %s\nfile size:
                         // %d\n", status_code, http_version, 0);
-                        sprintf(response_header, "%s %s%d%s", http_version,
+                        sprintf(response_header, "%s %s %d %s", http_version,
                                 "404 File Not Found\r\nContent-Type: "
                                 "text/html; charset=utf-8\r\nContent-Length: ",
                                 0, "\r\n\r\n");
+
                         send(accepted, response_header, strlen(response_header),
                              0);
-                        memset(http_version, 0, sizeof http_version);
 
+                        //memset(http_version, 0, sizeof http_version);
+                        printf("file path: %s\nhttp version: %s\n", file_path, http_version);
                         break;
 
                     }
+                    
+                    fclose(fptr);
+                    //free(file_path);
                   }
                   else if(strcmp(method,"POST") == 0)
                    {
@@ -223,12 +241,17 @@ int main(int argc, char* argv[]) {
                         send(accepted, response_header, strlen(response_header), 0);
 
                         send(accepted, message, strlen(message), 0);
+                        
+                        //memset(http_version, 0, sizeof http_version);
                       
                         break;
                       
-                   } 
+                   }
+                    
                     // memset(buff_received, 0, sizeof buff_received);
-                    // memset(file_path, 0, sizeof file_path);
+                    
+                  
+                    file_path = NULL;
                 } else {
                     
                     perror(
@@ -237,11 +260,9 @@ int main(int argc, char* argv[]) {
                 }
 
                  //memset(response_header, 0, sizeof response_header);
-                memset(http_version, 0, sizeof http_version);
                 // memset(path, 0, sizeof path);
                 // memset(method, 0, sizeof method);
 
-                fclose(fptr);
                 break;
             }
 
@@ -300,7 +321,7 @@ int main(int argc, char* argv[]) {
     //free(file_path);
     free(first_header);
     free(path);
-    free(http_version);
+//    free(http_version);
     free(status_code);
     freeaddrinfo(servinfo);  // free the linked-list
 }
