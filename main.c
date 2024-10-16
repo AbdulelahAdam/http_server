@@ -13,8 +13,8 @@ int status;
 // char* val;
 // char* delimiter;
 
-char* method;
-char path[256];
+char method[10];
+char path[64];
 char http_version[16];
 
 
@@ -55,41 +55,67 @@ void handle_sigint(int sig) {
 
 void splitHeaders(char* header) {
     // Split the string by space using strtok
-    char* token = strtok(header, " ");
-    method = (char*)malloc(16);
-    printf("Before: %s\n", path);
+ 
+
+    if(strlen(method) > 0) 
+        memset(method, '\0', sizeof(method));
+
     if(strlen(path) > 0)
-    {
         memset(path, '\0', sizeof(path));
+      
+    if(strlen(http_version) > 0)
+        memset(http_version, '\0', sizeof(http_version));
+    int token_count = 0;
+
+    // Allocate memory for the token pointers
+    char **tokens = malloc(3 * sizeof(char*));  // Adjust size as necessary
+    if (tokens == NULL) {
+        printf("Memory allocation failed.\n");
+        return 1;
     }
-    printf("Possible Edit: %s\n", path);
-  
-    int i = -1;
+
+    // Use strtok to get tokens
+    char *token = strtok(header, " ");
     while (token != NULL) {
-        // Store the token
-        i++;
-
-        if (i == 0)
-            method = token;
-
-        else if (i == 1)
-        {
-            strncpy(path, token, strlen(token));
-            printf("After: %s\n", path);
+        // Copy each token to a new string (with '\0' safely added)
+        tokens[token_count] = malloc(strlen(token) + 1);  // +1 for '\0'
+        if (tokens[token_count] == NULL) {
+            printf("Memory allocation failed.\n");
+            return 1;
         }
-
-        else {
-            strncpy(http_version, token, sizeof(token));
-        }
-
-        // Get the next token
+        strcpy(tokens[token_count], token);  // Copy token to allocated space
+        token_count++;
         token = strtok(NULL, " ");
     }
+  
+    if(strlen(tokens[0]) < 10)
+       strncpy(method, tokens[0], strlen(tokens[0]));
+    else{
+      perror("HTTP Method is abnormally large\n");
+      exit(1);
+    }
 
+    if(strlen(tokens[1]) < 64)
+       strncpy(path, tokens[1], strlen(tokens[1]));
+    else
+       {
+         perror("Parsed resource path is abnormally large\n");
+         exit(1);
+       }
+
+    if(sizeof(tokens[2]) < 16)
+       strncpy(http_version, tokens[2], sizeof(tokens[2]));
+    else
+       {
+         perror("Parsed HTTP version is abnormally large\n");
+         exit(1);
+       }
+      
+    printf("Method: %s\nPath: %s\nHttp: %s\n", method, path, http_version);
     // Output the result
 
     // Free the allocated memory
-    free(token);
+    free(tokens);
 }
 
 int main(int argc, char* argv[]) {
@@ -141,15 +167,15 @@ int main(int argc, char* argv[]) {
     char* response_header = (char*)malloc(4096 * sizeof(char));
     FILE* fptr;
     char file_contents[4096];
-    char* status_code = (char*)malloc(16);
+    char status_code[64];
     size_t file_size;
     size_t bytes_received;
     char* first_header = (char*)malloc(64);
     listen(status, 2);
     while (1) {
-        accepted = accept(status, (struct sockaddr*)&local_addr,
-                          (socklen_t*)&sock_len);
-        status_code = "200 OK\r\n";
+        accepted = accept(status, (struct sockaddr*)&local_addr, (socklen_t*)&sock_len);
+
+
         if (accepted != -1) {
             printf("Accept status: %ld\n", accepted);
             printf("Connected to Server successfully.\n");
@@ -170,7 +196,7 @@ int main(int argc, char* argv[]) {
                     }
 
                     splitHeaders(first_header);
-                    //printf("method: %s", method);
+
                     if(strcmp(method,"GET") == 0)
                     {
                     buff_sent = "";
@@ -179,24 +205,22 @@ int main(int argc, char* argv[]) {
                         file_path = "./static/index.html";
                         // Add Host
                     }
-                    printf("THE PATH: %s\n", file_path);
                     fptr = fopen(file_path, "r"); 
 
 
                     if (fptr != NULL) {
-                        // buff_sent = fptr;
                         fseek(fptr, 0, SEEK_END);
                         file_size = ftell(fptr);
                         rewind(fptr);
-                        //    file_size = 0;
-                        sprintf(response_header, "%s %s%s %ld %s", http_version,
-                                status_code,
-                                "Content-Type: text/html; "
-                                "charset=utf-8\r\nContent-Length: ",
-                                file_size, "\r\n\r\n");
-                        //        printf("%s\n", first_header);
-                        send(accepted, response_header, strlen(response_header),
-                             0);
+                        if(strlen(status_code) > 0)
+                            memset(status_code, '\0', sizeof(status_code));
+
+                        strncpy(status_code, "200 OK\r\n", strlen("200 OK\r\n"));
+
+                        sprintf(response_header, "%s %s%s%ld%s", http_version,
+                                status_code, "Content-Type: text/html; charset=utf-8\r\nContent-Length:", file_size, "\r\n\r\n");
+
+                        send(accepted, response_header, strlen(response_header), 0);
                         while (fgets(file_contents, sizeof(file_contents),
                                      fptr) != NULL) {
                             if (send(accepted, file_contents,
@@ -206,51 +230,41 @@ int main(int argc, char* argv[]) {
                             }
                             bzero(file_contents, sizeof(file_contents));
                         }
-                        
-                        printf("file path: %s\nhttp version: %s\n", file_path, http_version);
-
-
 
                     } else {
                         // printf("status code: %s\nhttp_version: %s\nfile size:
                         // %d\n", status_code, http_version, 0);
-                        sprintf(response_header, "%s %s %d %s", http_version,
-                                "404 File Not Found\r\nContent-Type: "
-                                "text/html; charset=utf-8\r\nContent-Length: ",
+                        memset(status_code, 0, sizeof(status_code));
+                        strncpy(status_code, "404 File Not Found\r\n", strlen("404 File Not Found\r\n"));
+
+                        sprintf(response_header, "%s %s%s%d%s", http_version, status_code,
+                                "Content-Type: text/html; charset=utf-8\r\nContent-Length: ",
                                 0, "\r\n\r\n");
 
                         send(accepted, response_header, strlen(response_header),
                              0);
 
-                        //memset(http_version, 0, sizeof http_version);
-                        printf("file path: %s\nhttp version: %s\n", file_path, http_version);
                         break;
 
                     }
                     
                     fclose(fptr);
-                    //free(file_path);
                   }
                   else if(strcmp(method,"POST") == 0)
                    {
 
                       char* message = "THIS BETTER BE WORKING!!!\n";
-                      sprintf(response_header, "%s %ld %s", "HTTP/1.1 200 OK\r\nContent-Type: text/html; charset=utf-8\r\nContent-Length: ",
+                      sprintf(response_header, "%s%ld%s", "HTTP/1.1 200 OK\r\nContent-Type: text/html; charset=utf-8\r\nContent-Length:",
                                 strlen(message), "\r\n\r\n");
 
                         send(accepted, response_header, strlen(response_header), 0);
 
                         send(accepted, message, strlen(message), 0);
                         
-                        //memset(http_version, 0, sizeof http_version);
-                      
                         break;
                       
                    }
                     
-                    // memset(buff_received, 0, sizeof buff_received);
-                    
-                  
                     file_path = NULL;
                 } else {
                     
@@ -258,10 +272,6 @@ int main(int argc, char* argv[]) {
                         "Error receiving data. Client didn't send anything :( "
                         "\n");
                 }
-
-                 //memset(response_header, 0, sizeof response_header);
-                // memset(path, 0, sizeof path);
-                // memset(method, 0, sizeof method);
 
                 break;
             }
@@ -275,53 +285,14 @@ int main(int argc, char* argv[]) {
     }
 
     printf("Server Stopped!\n");
-    // close(status);
-
-    /* Act as client. Send request and receive reponse from server.
-    int connection_result;
-    if((connection_result = connect(status, servinfo->ai_addr,
-    servinfo->ai_addrlen)) == -1)
-      {
-        fprintf(stderr, "connection failed!\n");
-        return -1;
-      }
-    printf("Connection succeeded with result: %d\n", connection_result);
-
-    char *msg = "GET /posts/1 HTTP/1.1\r\nHost:
-    jsonplaceholder.typicode.com\r\nContent-Type:
-    application/json\r\nConnection: close\r\n\r\n\r\n"; char* buff =
-    (char*)malloc(155); int len, bytes_sent, bytes_received;
-
-
-    len = strlen(msg);
-    bytes_sent = send(status, msg, len, 0);
-    FILE *fptr;
-
-    // Open a file in writing mode
-    fptr = fopen("./result.json", "a");
-
-    while(1)
-    {
-     bytes_received = recv(status, buff, 155, 0);
-     fprintf(fptr, buff);
-    // printf("%s\n", buff);
-     if(bytes_received == 0)
-       break;
-    }
-
+ 
 
 
     // free all allocated memory.
-    */
     free(local_addr);
     free(buff_sent);
     free(buff_received);
     free(response_header);
-    free(method);
-    //free(file_path);
     free(first_header);
-    free(path);
-//    free(http_version);
-    free(status_code);
     freeaddrinfo(servinfo);  // free the linked-list
 }
