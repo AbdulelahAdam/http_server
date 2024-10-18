@@ -31,14 +31,25 @@ void accept_client_request(int server_socket) {
             // Send response here
             while (1)  // response
             {
-                size_t bytes_received = recv(accepted, buff_received, 4096, 0);
+                size_t bytes_received = recv(accepted, buff_received, 4096, 0);  
+                
+
                 if (bytes_received > 0) {
-                    for (int i = 0; i < 512 && buff_received[i] != '\n'; i++) {
+                    for (int i = 0; i < 4095 && buff_received[i] != '\n'; i++) {
                         first_header[i] = buff_received[i];
                     }
+                    int value = splitHeaders(first_header, method, path, http_version); 
 
-                    splitHeaders(first_header, method, path, http_version);
-
+                    if(value == 414){
+                        send_response(accepted, http_version, "414 URI Too Long", "text/html", "");
+                        break;
+                      }
+                    else if(value == 90){
+                        send_response(accepted, http_version, "505 HTTP Version Not Supported", "text/html", "");
+                        break;
+                      }
+                  
+                    else
                     if (strcmp(method, "GET") == 0) {
                         sprintf(file_path, "%s%s", ".", path);
                         if (strlen(path) == 1) {
@@ -90,8 +101,9 @@ void accept_client_request(int server_socket) {
         } else {
             // SERVER ERRORS SHOULD BE HERE SINCE CLIENT COULDN'T
             // CONNECT. 5XX
+            send_response(accepted, http_version, "500 Internal Server Error","text/html", "");
+
         }
     }
-
     free(buff_received);
 }

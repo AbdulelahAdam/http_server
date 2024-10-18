@@ -1,5 +1,6 @@
 .gitignore
 main.exe
+main_second.exe
 notes.txt
 quick_server_build.sh
 telnet_build.sh
