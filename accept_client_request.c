@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <sys/socket.h>
+#include <sys/stat.h>
 #include <string.h>
 #include <unistd.h>
 
@@ -56,7 +57,10 @@ void accept_client_request(int server_socket) {
                             file_path = "./static/index.html";
                             // Add Host
                         }
-                        fptr = fopen(file_path, "r");
+                        struct stat sb;
+                        if (!(stat(file_path, &sb) == 0 && S_ISDIR(sb.st_mode)))
+                            fptr = fopen(file_path, "r");
+                        
 
                         if (fptr != NULL) {
                             fseek(fptr, 0, SEEK_END);
