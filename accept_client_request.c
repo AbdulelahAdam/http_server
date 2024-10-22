@@ -20,7 +20,7 @@ void accept_client_request(int server_socket) {
     char file_contents[4096];
     char method[10], path[64], http_version[16];
 
-    listen(server_socket, 2);
+    listen(server_socket, 25);
     while (1) 
     {
         accepted = accept(server_socket, (struct sockaddr*)&local_addr, (socklen_t*)&sock_len);
@@ -45,15 +45,20 @@ void accept_client_request(int server_socket) {
                         send_response(accepted, http_version, "414 URI Too Long", "text/html", "");
                         break;
                       }
-                    else if(value == 90){
+                    else if(value == 505){
                         send_response(accepted, http_version, "505 HTTP Version Not Supported", "text/html", "");
                         break;
                       }
-                  
+
+                    else if(value == 400){
+                        send_response(accepted, http_version, "400 Bad Request", "text/html", "");
+                        break;
+                      }
+                    
                     else
                     if (strcmp(method, "GET") == 0) {
                         sprintf(file_path, "%s%s", ".", path);
-                        if (strlen(path) == 1) {
+                        if (strcmp(path, "/") == 0) {
                             file_path = "./static/index.html";
                             // Add Host
                         }
@@ -94,9 +99,9 @@ void accept_client_request(int server_socket) {
                     }
 
                 } else {
-                    perror(
-                        "Error receiving data. Client didn't send anything :( "
-                        "\n");
+                    perror("Error receiving data. Client didn't send anything :( ");
+                    send_response(accepted, http_version, "400 Bad Request", "text/html", "");
+                    break;
                 }
                 break;
             }

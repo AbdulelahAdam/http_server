@@ -10,56 +10,65 @@ int splitHeaders(char* header, char* method, char* path, char* http_version) {
     char* token = strtok(header, " ");
     int token_count = 0;
     int returnVal = -1;
-
-
+  
+  if(strcmp(token, "GET") != 0 && strcmp(token, "POST") != 0 && strcmp(token, "PUT") != 0 && strcmp(token, "PATCH") != 0 && strcmp(token, "DELETE") != 0)
+  {
+    strcpy(http_version, "HTTP/1.1");
+    return 400;
+  }
+ 
    while (token != NULL) {
         // Copy each token to a new string (with '\0' safely added)
-        tokens[token_count] = malloc(strlen(token) + 1);  // +1 for '\0'
+        tokens[token_count] = malloc(strlen(token));  // +1 for '\0'
         if (tokens[token_count] == NULL) {
             printf("Memory allocation failed.\n");
             exit(1);
         }
-        strcpy(tokens[token_count], token);  // Copy token to allocated space
+        strcpy(tokens[token_count], token);
         token_count++;
         token = strtok(NULL, " ");
     }
+        
 
-
-    if (strlen(tokens[0]) < 10)
-        strcpy(method, tokens[0]);
-
-    else 
+    if (strlen(tokens[0]) > 8)
     {
         perror("HTTP Method is abnormally large\n");
-        exit(1);
+        returnVal = 414;  
     }
 
-    if (strlen(tokens[1]) <= 64)
-      strcpy(path, tokens[1]);
+    else 
+        strcpy(method, tokens[0]);
+
+    if((strlen(tokens[1]) == 1 && strcmp(tokens[1], "/") != 0) || tokens[1] == " ")
+        returnVal = 400;
+      
+    else if (strlen(tokens[1]) <= 64)
+        strcpy(path, tokens[1]);
 
     else 
     {
-        strncpy(path, tokens[1], 63);  // Prevent overflow
-        path[63] = '\0';  // Ensure null-terminated
+        strncpy(path, tokens[1], 63); 
+        path[63] = '\0';  
         perror("Parsed resource path is abnormally large");
 
-        // Send a 414 URI Too Long response
-        returnVal = 414;  // Exit the current request handling loop, but keep the server running   
+        returnVal = 414;     
+        
      }
-
-    if (sizeof(tokens[2]) < 16)
-    {
-    strncpy(http_version, tokens[2], sizeof(tokens[2]));
-    if(strcmp(http_version, "HTTP/1.0") != 0 && strcmp(http_version, "HTTP/1.1") != 0 && strcmp(http_version, "HTTP/2") != 0)
-        returnVal = 90;
-    }
-
-    else 
+     tokens[2][strlen(tokens[2]) - 1] = '\0';
+   
+    if(strcmp(tokens[2], "HTTP/1.0") != 0 && strcmp(tokens[2], "HTTP/1.1") != 0 && strcmp(tokens[2], "HTTP/2") != 0)
+      returnVal = 505;
+    
+    else if(strlen(tokens[2]) > 10) 
     {
         perror("Parsed HTTP version is abnormally large\n");
-        exit(1);
+        returnVal = 414;
     }
+      
+    else
+        strcpy(http_version, tokens[2]);
 
+    printf("Method: %s\nPath: %s\nHTTP: %s\n", method, path, http_version);
     free(tokens);  
     return returnVal;
 
