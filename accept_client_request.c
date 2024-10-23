@@ -15,7 +15,6 @@ void accept_client_request(int server_socket) {
     size_t sock_len = sizeof(struct sockaddr); 
     char* local_addr = "localhost";
     FILE* fptr;
-    char* buff_received = (char*) malloc(4096);
     char first_header[512];
     char file_contents[4096];
     char method[10], path[64], http_version[16];
@@ -32,15 +31,21 @@ void accept_client_request(int server_socket) {
             // Send response here
             while (1)  // response
             {
+              
+                char* buff_received = (char*) malloc(4096);                
                 size_t bytes_received = recv(accepted, buff_received, 4096, 0);  
                 
 
                 if (bytes_received > 0) {
-                    for (int i = 0; i < 4095 && buff_received[i] != '\n'; i++) {
+                    int i = 0;
+                    for (i; i < 4095 && buff_received[i] != '\n'; i++) {
                         first_header[i] = buff_received[i];
                     }
+                    first_header[i] = '\0';
                     int value = splitHeaders(first_header, method, path, http_version); 
-
+                    memset(first_header, 0, 512);
+                    free(buff_received);
+                    buff_received = NULL;
                     if(value == 414){
                         send_response(accepted, http_version, "414 URI Too Long", "text/html", "");
                         break;
@@ -59,7 +64,7 @@ void accept_client_request(int server_socket) {
                     if (strcmp(method, "GET") == 0) {
                         sprintf(file_path, "%s%s", ".", path);
                         if (strcmp(path, "/") == 0) {
-                            file_path = "./static/index.html";
+                            strcpy(file_path, "./static/index.html");
                             // Add Host
                         }
                         struct stat sb;
@@ -83,26 +88,36 @@ void accept_client_request(int server_socket) {
                                     perror("Error in sending file.");
                                     exit(1);
                                 }
-                                bzero(file_contents, sizeof(file_contents));
+                                
+                                memset(file_contents, 0, strlen(file_contents));
+
                             }
+              
+                        fclose(fptr);
                         } else {
                             send_response(accepted, http_version,"404 File Not Found", "text/html", "");
+                            if(strcmp(http_version, "HTTP/1.1") == 0)
+                                continue;
                             break;
                         }
                         
-                        fclose(fptr);
                     } else if (strcmp(method, "POST") == 0) {
                         char* message = "THIS BETTER BE WORKING!!!\n";
                         send_response(accepted, http_version, "200 OK",
                                       "text/html", message);
+                        
+                      if(strcmp(http_version, "HTTP/1.1") == 0)
+                        continue;
+
                         break;
                     }
 
                 } else {
-                    perror("Error receiving data. Client didn't send anything :( ");
-                    send_response(accepted, http_version, "400 Bad Request", "text/html", "");
                     break;
                 }
+
+                if(strcmp(http_version, "HTTP/1.1") == 0)
+                    continue;
                 break;
             }
 
@@ -114,5 +129,4 @@ void accept_client_request(int server_socket) {
 
         }
     }
-    free(buff_received);
 }
