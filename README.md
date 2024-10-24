@@ -23,6 +23,7 @@ A simple HTTP server written in C, supporting HTTP/1.1 methods.
    ```bash
    git clone https://github.com/username/http_server.git
    cd http_server
+   ```
    
 2. **Build the project using Makefile:**
    ```bash
@@ -39,19 +40,15 @@ The server runs on port 8080
 1. **Starting the Server:**
    ```bash
    ./bin/http_server
-   
-   
+   ```   
 2. **Accessing the Server:**
    Open a web browser and enter:
    ```bash
    http://localhost:8080
-   
-   
-   
+   ```
+      
 3. **Stopping the Server:**
    `CTRL + C`
-   
-   
    
    
 ### Contributing
