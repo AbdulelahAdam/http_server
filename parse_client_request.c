@@ -12,11 +12,11 @@ int splitHeaders(char* header, char* method, char* path, char* http_version) {
     int token_count = 0;
     int returnVal = -1;
   
- // if(strcmp(token, "GET") != 0 && strcmp(token, "POST") != 0 && strcmp(token, "PUT") != 0 && strcmp(token, "PATCH") != 0 && strcmp(token, "DELETE") != 0)
-  //{
-   // strcpy(http_version, "HTTP/1.1");
-    //return 400;
- // }
+  if(strcmp(token, "GET") != 0 && strcmp(token, "POST") != 0 && strcmp(token, "PUT") != 0 && strcmp(token, "PATCH") != 0 && strcmp(token, "DELETE") != 0)
+  {
+    strcpy(http_version, "HTTP/1.1");
+    return 400;
+  }
  
    while (token != NULL) {
         // Copy each token to a new string (with '\0' safely added)
