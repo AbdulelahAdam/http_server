@@ -27,11 +27,11 @@ A simple HTTP server written in C, supporting HTTP/1.1 methods.
 2. **Build the project using Makefile:**
    ```bash
    make
-   
+   ```
 3. **Run the Server:**
    ```bash
    ./bin/http_server
-   
+   ```
    
 ### Usage
 
