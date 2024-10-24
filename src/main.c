@@ -2,8 +2,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
-#include "./headers/initialize_server.h"
-#include "./headers/accept_client_request.h"
+#include "../include/initialize_server.h"
+#include "../include/accept_client_request.h"
 
 void handle_sigint(int sig) {
     printf("\nShutting down server...\n");

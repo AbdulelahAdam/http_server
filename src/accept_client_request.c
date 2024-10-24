@@ -7,8 +7,8 @@
 
 
 
-#include "./headers/parse_client_request.h"
-#include "./headers/send_server_response.h"
+#include "../include/parse_client_request.h"
+#include "../include/send_server_response.h"
 
 void accept_client_request(int server_socket) {
     size_t accepted;
@@ -26,21 +26,21 @@ void accept_client_request(int server_socket) {
         if (accepted != -1) {
             printf("Accept status: %ld\n", accepted);
             printf("Connected to Server successfully.\n");
-            char* file_path = (char*)malloc(512 * sizeof(char));
             // receive client request here
             // Send response here
             while (1)  // response
             {
               
+                char* file_path = (char*)malloc(512 * sizeof(char));
                 char* buff_received = (char*) malloc(4096);                
                 size_t bytes_received = recv(accepted, buff_received, 4096, 0);  
                 
 
                 if (bytes_received > 0) {
                     int i = 0;
-                    for (i; i < 4095 && buff_received[i] != '\n'; i++) {
+                    for(i; i < 4095 && buff_received[i] != '\n'; i++)
                         first_header[i] = buff_received[i];
-                    }
+                    
                     first_header[i] = '\0';
                     int value = splitHeaders(first_header, method, path, http_version); 
                     memset(first_header, 0, 512);
@@ -70,8 +70,10 @@ void accept_client_request(int server_socket) {
                         struct stat sb;
                         if (!(stat(file_path, &sb) == 0 && S_ISDIR(sb.st_mode)))
                             fptr = fopen(file_path, "r");
-                        
+                        else 
+                            fptr = NULL;
 
+                        free(file_path);
                         if (fptr != NULL) {
                             fseek(fptr, 0, SEEK_END);
                             size_t file_size = ftell(fptr);
@@ -82,7 +84,7 @@ void accept_client_request(int server_socket) {
                               sprintf(response_header, "%s %s%s%ld%s", http_version, "200 OK\r\n", "Content-Type: text/html; charset=utf-8\r\nContent-Length:", file_size, "\r\n\r\n");
                             
                               send(accepted, response_header,  strlen(response_header), 0);
-
+                              free(response_header);
                             while (fgets(file_contents, sizeof(file_contents), fptr) != NULL) {
                                 if (send(accepted, file_contents, strlen(file_contents), 0) == -1) {
                                     perror("Error in sending file.");
@@ -96,27 +98,27 @@ void accept_client_request(int server_socket) {
                         fclose(fptr);
                         } else {
                             send_response(accepted, http_version,"404 File Not Found", "text/html", "");
-                            if(strcmp(http_version, "HTTP/1.1") == 0)
+                            if(strcmp(http_version, "HTTP/1.1") == 0) // Connection kept alive
                                 continue;
                             break;
                         }
                         
                     } else if (strcmp(method, "POST") == 0) {
-                        char* message = "THIS BETTER BE WORKING!!!\n";
+                        char* message = "test";
                         send_response(accepted, http_version, "200 OK",
                                       "text/html", message);
                         
-                      if(strcmp(http_version, "HTTP/1.1") == 0)
+                      if(strcmp(http_version, "HTTP/1.1") == 0) // Connection kept alive
                         continue;
 
-                        break;
+                      break;
                     }
 
                 } else {
                     break;
                 }
 
-                if(strcmp(http_version, "HTTP/1.1") == 0)
+                if(strcmp(http_version, "HTTP/1.1") == 0) // Connection kept alive
                     continue;
                 break;
             }

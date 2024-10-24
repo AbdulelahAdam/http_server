@@ -7,7 +7,7 @@ int splitHeaders(char* header, char* method, char* path, char* http_version) {
     memset(path, 0, 64);
     memset(http_version, 0, 16);
 
-    char **tokens = malloc(3 * sizeof(char*));
+    char **tokens = malloc(4 * sizeof(char*));
     char* token = strtok(header, " ");
     int token_count = 0;
     int returnVal = -1;
@@ -41,7 +41,7 @@ int splitHeaders(char* header, char* method, char* path, char* http_version) {
     else 
         strcpy(method, tokens[0]);
 
-    if((strlen(tokens[1]) == 1 && strcmp(tokens[1], "/") != 0) || tokens[1] == " ")
+    if((strlen(tokens[1]) == 1 && strcmp(tokens[1], "/") != 0) || strcmp(tokens[1], " ") == 0)
         returnVal = 400;
       
     else if (strlen(tokens[1]) <= 64)
@@ -70,6 +70,10 @@ int splitHeaders(char* header, char* method, char* path, char* http_version) {
     else
         strcpy(http_version, tokens[2]);
 
+    
+    for (int i = 0; i < 3; i++) {
+      free(tokens[i]);
+    }
     free(tokens);  
     return returnVal;
 
