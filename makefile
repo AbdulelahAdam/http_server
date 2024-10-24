@@ -1,44 +1,35 @@
-# Variables
+
 CC = gcc
 CFLAGS = -Wall -g
-INCLUDES = -I./include
 SRCDIR = src
 OBJDIR = obj
+INCDIR = include
 BINDIR = bin
-TARGET = $(BINDIR)/http_server
+TARGET = http_server
 
-# Source files
 SOURCES = $(wildcard $(SRCDIR)/*.c)
 OBJECTS = $(patsubst $(SRCDIR)/%.c, $(OBJDIR)/%.o, $(SOURCES))
 
-# Default target to build the program
-all: $(TARGET)
+all: $(BINDIR)/$(TARGET)
 
-# Link object files to create the final executable
-$(TARGET): $(OBJECTS) | $(BINDIR)
-	$(CC) $(CFLAGS) $(OBJECTS) -o $@
+$(BINDIR)/$(TARGET): $(OBJECTS)
+	@mkdir -p $(BINDIR)
+	$(CC) $(OBJECTS) -o $(BINDIR)/$(TARGET)
 
-# Compile source files into object files
-$(OBJDIR)/%.o: $(SRCDIR)/%.c | $(OBJDIR)
-	$(CC) $(CFLAGS) $(INCLUDES) -c $< -o $@
+$(OBJDIR)/%.o: $(SRCDIR)/%.c
+	@mkdir -p $(OBJDIR)
+	$(CC) $(CFLAGS) -I$(INCDIR) -c $< -o $@
 
-# Create bin and obj directories if they don't exist
-$(BINDIR):
-	mkdir -p $(BINDIR)
-
-$(OBJDIR):
-	mkdir -p $(OBJDIR)
-
-# Clean target to remove compiled objects and the binary
 clean:
 	rm -rf $(OBJDIR) $(BINDIR)
 
-# Run the server
-run: $(TARGET)
-	./$(TARGET)
+install: all
+	@mkdir -p /usr/local/bin
+	cp $(BINDIR)/$(TARGET) /usr/local/bin/
+	@echo "Installed $(TARGET) to /usr/local/bin/"
 
-# Run the server with valgrind for memory check
-valgrind: $(TARGET)
-	valgrind --leak-check=full ./$(TARGET)
+uninstall:
+	rm -f /usr/local/bin/$(TARGET)
+	@echo "Uninstalled $(TARGET) from /usr/local/bin/"
 
-.PHONY: all clean run valgrind
+
