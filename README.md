@@ -21,7 +21,7 @@ A simple HTTP server written in C, supporting HTTP/1.1 methods.
 1. **Clone the repository:**
 
    ```bash
-   git clone https://github.com/username/http_server.git
+   git clone https://github.com/AbdulelahAdam/http_server.git
    cd http_server
    ```
    
